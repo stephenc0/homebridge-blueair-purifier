@@ -49,11 +49,11 @@ export class AirPurifierAccessory {
       .onGet(this.getLockPhysicalControls.bind(this))
       .onSet(this.setLockPhysicalControls.bind(this));
 
-    const rotationSpeedCharacteristic = this.service
+    this.service
       .getCharacteristic(this.platform.Characteristic.RotationSpeed)
+      .setProps({ minValue: 0, maxValue: 100, minStep: 1 })
       .onGet(this.getRotationSpeed.bind(this))
       .onSet(this.setRotationSpeed.bind(this));
-
 
 
     this.filterMaintenanceService =

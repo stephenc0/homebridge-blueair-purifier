@@ -49,7 +49,7 @@ export class BlueAirPlatform extends EventEmitter implements DynamicPlatformPlug
     this.api.on('didFinishLaunching', async () => {
       await this.getInitialDeviceStates();
 
-      this.getValidDevicesStatus();
+      this.polling = setTimeout(this.getValidDevicesStatus.bind(this), this.platformConfig.pollingInterval);
     });
   }
 
