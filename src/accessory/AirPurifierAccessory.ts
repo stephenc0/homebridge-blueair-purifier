@@ -63,10 +63,14 @@ export class AirPurifierAccessory {
       .onGet(this.getLockPhysicalControls.bind(this))
       .onSet(this.setLockPhysicalControls.bind(this));
 
-    this.service
+    const rotationSpeedCharacteristic = this.service
       .getCharacteristic(this.platform.Characteristic.RotationSpeed)
       .onGet(this.getRotationSpeed.bind(this))
       .onSet(this.setRotationSpeed.bind(this));
+
+    if (this.isMiniRestful) {
+      rotationSpeedCharacteristic.setProps({ minStep: 33, minValue: 0, maxValue: 99 });
+    }
 
     this.filterMaintenanceService =
       this.accessory.getService(this.platform.Service.FilterMaintenance) ||
@@ -220,6 +224,7 @@ export class AirPurifierAccessory {
         case 'nlstepless':
           this.nightLightService?.updateCharacteristic(this.platform.Characteristic.On, this.getNightLightOn());
           this.nightLightService?.updateCharacteristic(this.platform.Characteristic.Brightness, this.getNightLightBrightness());
+          this.nightModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getNightMode());
           break;
       }
 
@@ -373,12 +378,20 @@ export class AirPurifierAccessory {
   }
 
   getNightMode(): CharacteristicValue {
+    if (this.isMiniRestful) {
+      return (this.device.state.nlstepless as number | undefined) !== undefined &&
+        (this.device.state.nlstepless as number) > 0;
+    }
     return this.device.state.nightmode === true;
   }
 
   async setNightMode(value: CharacteristicValue) {
     this.platform.log.debug(`[${this.device.name}] Setting night mode to ${value}`);
-    await this.device.setState('nightmode', value as boolean);
+    if (this.isMiniRestful) {
+      await this.device.setState('nlstepless', value ? 40 : 0);
+    } else {
+      await this.device.setState('nightmode', value as boolean);
+    }
   }
 
   getNightLightOn(): CharacteristicValue {
