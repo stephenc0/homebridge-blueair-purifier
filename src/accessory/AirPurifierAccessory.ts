@@ -69,9 +69,6 @@ export class AirPurifierAccessory {
       .onGet(this.getRotationSpeed.bind(this))
       .onSet(this.setRotationSpeed.bind(this));
 
-    if (this.isMiniRestful) {
-      rotationSpeedCharacteristic.setProps({ minValue: 0, maxValue: 100, minStep: 1, validValues: [0, 33, 66, 100] });
-    }
 
 
     this.filterMaintenanceService =
