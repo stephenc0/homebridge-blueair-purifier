@@ -377,6 +377,9 @@ export class AirPurifierAccessory {
     this.platform.log.debug(`[${this.device.name}] Setting night mode to ${value}`);
     if (this.isMiniRestful) {
       await this.device.setState('apsubmode', value ? 3 : 1);
+      if (value) {
+        await this.device.setState('brightness', 0);
+      }
     } else {
       await this.device.setState('nightmode', value as boolean);
     }
