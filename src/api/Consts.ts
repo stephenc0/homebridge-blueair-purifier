@@ -65,6 +65,7 @@ export type BlueAirDeviceStatusResponse = {
     configuration: {
       di: {
         name: string;
+        hw?: string;
       };
     };
     sensordata: {
@@ -77,6 +78,7 @@ export type BlueAirDeviceStatusResponse = {
       t: number;
       v?: number;
       vb?: boolean;
+      vj?: string;
     }[];
   }[];
 };

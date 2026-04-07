@@ -26,8 +26,10 @@ export type BlueAirDeviceState = {
   nightmode?: boolean;
   mfv?: string;
   automode?: boolean;
+  mainmode?: number;
   ofv?: string;
   brightness?: number;
+  nlstepless?: number;
   safetyswitch?: boolean;
   filterusage?: number;
   disinfection?: boolean;
@@ -50,6 +52,7 @@ export type BlueAirDeviceSensorData = {
 export type BlueAirDeviceStatus = {
   id: string;
   name: string;
+  type: string;
   state: BlueAirDeviceState;
   sensorData: BlueAirDeviceSensorData;
 };
@@ -137,7 +140,7 @@ export default class BlueAirAwsApi {
     return devices;
   }
 
-  async getDeviceStatus(accountUuid: string, uuids: string[]): Promise<BlueAirDeviceStatus[]> {
+  async getDeviceStatus(accountUuid: string, uuids: string[], deviceTypes?: Record<string, string>): Promise<BlueAirDeviceStatus[]> {
     await this.checkTokenExpiration();
 
     const body = {
@@ -157,6 +160,7 @@ export default class BlueAirAwsApi {
       return {
         id: device.id,
         name: device.configuration.di.name,
+        type: deviceTypes?.[device.id] ?? device.configuration.di.hw ?? 'unknown',
         sensorData: device.sensordata.reduce((acc, sensor) => {
           const key = BlueAirDeviceSensorDataMap[sensor.n];
           if (key) {
@@ -169,7 +173,7 @@ export default class BlueAirAwsApi {
             acc[state.n] = state.v;
           } else if (state.vb !== undefined) {
             acc[state.n] = state.vb;
-          } else {
+          } else if (state.vj === undefined) {
             this.logger.warn(`getDeviceStatus: unknown state ${JSON.stringify(state)}`);
           }
           return acc;

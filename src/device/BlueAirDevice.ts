@@ -59,6 +59,7 @@ export class BlueAirDevice extends EventEmitter {
 
   public readonly id: string;
   public readonly name: string;
+  public readonly type: string;
 
   private mutex: Mutex;
 
@@ -70,6 +71,7 @@ export class BlueAirDevice extends EventEmitter {
     super();
     this.id = device.id;
     this.name = device.name;
+    this.type = device.type;
 
     this.state = device.state;
     this.sensorData = {

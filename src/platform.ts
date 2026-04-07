@@ -8,6 +8,13 @@ import { BlueAirDevice } from './device/BlueAirDevice';
 import { AirPurifierAccessory } from './accessory/AirPurifierAccessory';
 import EventEmitter from 'events';
 
+// Maps state attribute names to their API action names for devices where they differ
+const DEVICE_ACTION_MAP: Record<string, Record<string, string>> = {
+  mrest: {
+    fanspeed: 'fsp0',
+  },
+};
+
 export class BlueAirPlatform extends EventEmitter implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
@@ -19,6 +26,7 @@ export class BlueAirPlatform extends EventEmitter implements DynamicPlatformPlug
   private readonly blueAirApi: BlueAirAwsApi;
 
   private existingUuids: string[] = [];
+  private deviceTypes: Record<string, string> = {};
 
   private devices: BlueAirDevice[] = [];
   private polling: NodeJS.Timeout | null = null;
@@ -59,7 +67,7 @@ export class BlueAirPlatform extends EventEmitter implements DynamicPlatformPlug
   async getValidDevicesStatus() {
     this.log.debug('Updating devices states...');
     try {
-      const devices = await this.blueAirApi.getDeviceStatus(this.platformConfig.accountUuid, this.existingUuids);
+      const devices = await this.blueAirApi.getDeviceStatus(this.platformConfig.accountUuid, this.existingUuids, this.deviceTypes);
       for (const device of devices) {
         const blueAirDevice = this.devices.find((d) => d.id === device.id);
         if (!blueAirDevice) {
@@ -83,8 +91,19 @@ export class BlueAirPlatform extends EventEmitter implements DynamicPlatformPlug
     this.log.info('Getting initial device states...');
     try {
       await this.blueAirApi.login();
+
+      // Fetch device types from discovery endpoint
+      try {
+        const discovered = await this.blueAirApi.getDevices();
+        for (const d of discovered) {
+          this.deviceTypes[d.uuid] = d.type;
+        }
+      } catch (e) {
+        this.log.warn('Could not fetch device types, device-specific features may not work correctly.');
+      }
+
       let uuids = this.platformConfig.devices.map((device) => device.id);
-      const devices = await this.blueAirApi.getDeviceStatus(this.platformConfig.accountUuid, uuids);
+      const devices = await this.blueAirApi.getDeviceStatus(this.platformConfig.accountUuid, uuids, this.deviceTypes);
 
       for (const device of devices) {
         this.addDevice(device);
@@ -123,7 +142,8 @@ export class BlueAirPlatform extends EventEmitter implements DynamicPlatformPlug
       this.polling && clearTimeout(this.polling);
       let success = false;
       try {
-        await this.blueAirApi.setDeviceStatus(id, attribute, value);
+        const actionName = DEVICE_ACTION_MAP[blueAirDevice.type]?.[attribute] ?? attribute;
+        await this.blueAirApi.setDeviceStatus(id, actionName, value);
         success = true;
       } catch (error) {
         this.log.error(`[${name}] Error setting state: ${attribute} = ${value}`, error);
