@@ -282,7 +282,14 @@ export class AirPurifierAccessory {
 
   async setRotationSpeed(value: CharacteristicValue) {
     this.platform.log.debug(`[${this.device.name}] Setting rotation speed to ${value}`);
-    await this.device.setState('fanspeed', value as number);
+    let speed = value as number;
+    if (this.isMiniRestful) {
+      if (speed <= 0) speed = 0;
+      else if (speed <= 33) speed = 11;
+      else if (speed <= 66) speed = 51;
+      else speed = 91;
+    }
+    await this.device.setState('fanspeed', speed);
   }
 
   getFilterChangeIndication(): CharacteristicValue {
