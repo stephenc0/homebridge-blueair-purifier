@@ -168,6 +168,9 @@ export class AirPurifierAccessory {
         case 'mainmode':
           this.service.updateCharacteristic(this.platform.Characteristic.TargetAirPurifierState, this.getTargetAirPurifierState());
           break;
+        case 'apsubmode':
+          this.nightModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getNightMode());
+          break;
         case 'childlock':
           this.service.updateCharacteristic(this.platform.Characteristic.LockPhysicalControls, this.getLockPhysicalControls());
           break;
@@ -365,8 +368,7 @@ export class AirPurifierAccessory {
 
   getNightMode(): CharacteristicValue {
     if (this.isMiniRestful) {
-      return (this.device.state.nlstepless as number | undefined) !== undefined &&
-        (this.device.state.nlstepless as number) > 0;
+      return this.device.state.apsubmode === 3;
     }
     return this.device.state.nightmode === true;
   }
@@ -374,7 +376,7 @@ export class AirPurifierAccessory {
   async setNightMode(value: CharacteristicValue) {
     this.platform.log.debug(`[${this.device.name}] Setting night mode to ${value}`);
     if (this.isMiniRestful) {
-      await this.device.setState('nlstepless', value ? 40 : 0);
+      await this.device.setState('apsubmode', value ? 3 : 1);
     } else {
       await this.device.setState('nightmode', value as boolean);
     }

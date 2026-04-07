@@ -27,6 +27,7 @@ export type BlueAirDeviceState = {
   mfv?: string;
   automode?: boolean;
   mainmode?: number;
+  apsubmode?: number;
   ofv?: string;
   brightness?: number;
   nlstepless?: number;
