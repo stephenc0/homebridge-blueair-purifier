@@ -19,19 +19,18 @@ export class AirPurifierAccessory {
   }
 
   // Mini Restful has 3 discrete fan speeds: 11 (low), 51 (medium), 91 (high)
-  // HomeKit 0=off, 1-11→11, 12-51→51, 52-100→91
-  private mrestSpeedFromPercent(percent: number): number {
-    if (percent <= 0) return 0;
-    if (percent <= 11) return 11;
-    if (percent <= 51) return 51;
-    return 91;
+  // HomeKit steps: 1=low, 2=medium, 3=high
+  private static readonly MREST_SPEEDS = [11, 51, 91];
+
+  private mrestSpeedFromStep(step: number): number {
+    const index = Math.min(Math.max(Math.round(step) - 1, 0), 2);
+    return AirPurifierAccessory.MREST_SPEEDS[index];
   }
 
-  private mrestSpeedToPercent(speed: number): number {
-    if (speed <= 0) return 0;
-    if (speed <= 11) return 11;
-    if (speed <= 51) return 51;
-    return 91;
+  private mrestSpeedToStep(speed: number): number {
+    if (speed <= 11) return 1;
+    if (speed <= 51) return 2;
+    return 3;
   }
 
   constructor(
@@ -68,6 +67,10 @@ export class AirPurifierAccessory {
       .getCharacteristic(this.platform.Characteristic.RotationSpeed)
       .onGet(this.getRotationSpeed.bind(this))
       .onSet(this.setRotationSpeed.bind(this));
+
+    if (this.isMiniRestful) {
+      rotationSpeedCharacteristic.setProps({ minValue: 1, maxValue: 3, minStep: 1 });
+    }
 
 
     this.filterMaintenanceService =
@@ -293,14 +296,14 @@ export class AirPurifierAccessory {
   getRotationSpeed(): CharacteristicValue {
     if (this.device.state.standby !== false) return 0;
     if (this.isMiniRestful) {
-      return this.mrestSpeedToPercent(this.device.state.fanspeed || 0);
+      return this.mrestSpeedToStep(this.device.state.fanspeed || 0);
     }
     return this.device.state.fanspeed || 0;
   }
 
   async setRotationSpeed(value: CharacteristicValue) {
     this.platform.log.debug(`[${this.device.name}] Setting rotation speed to ${value}`);
-    const speed = this.isMiniRestful ? this.mrestSpeedFromPercent(value as number) : (value as number);
+    const speed = this.isMiniRestful ? this.mrestSpeedFromStep(value as number) : (value as number);
     await this.device.setState('fanspeed', speed);
   }
 
