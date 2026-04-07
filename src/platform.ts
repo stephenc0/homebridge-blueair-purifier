@@ -8,12 +8,6 @@ import { BlueAirDevice } from './device/BlueAirDevice';
 import { AirPurifierAccessory } from './accessory/AirPurifierAccessory';
 import EventEmitter from 'events';
 
-// Maps state attribute names to their API action names for devices where they differ
-const DEVICE_ACTION_MAP: Record<string, Record<string, string>> = {
-  mrest: {
-    fanspeed: 'fsp0',
-  },
-};
 
 export class BlueAirPlatform extends EventEmitter implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
@@ -142,8 +136,7 @@ export class BlueAirPlatform extends EventEmitter implements DynamicPlatformPlug
       this.polling && clearTimeout(this.polling);
       let success = false;
       try {
-        const actionName = DEVICE_ACTION_MAP[blueAirDevice.type]?.[attribute] ?? attribute;
-        await this.blueAirApi.setDeviceStatus(id, actionName, value);
+        await this.blueAirApi.setDeviceStatus(id, attribute, value);
         success = true;
       } catch (error) {
         this.log.error(`[${name}] Error setting state: ${attribute} = ${value}`, error);
