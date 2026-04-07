@@ -18,21 +18,6 @@ export class AirPurifierAccessory {
     return this.device.type === 'mrest';
   }
 
-  // Mini Restful has 3 discrete fan speeds: 11 (low), 51 (medium), 91 (high)
-  // HomeKit: 0=off, 33=low, 66=medium, 100=high
-  private mrestSpeedFromPercent(percent: number): number {
-    if (percent <= 0) return 0;
-    if (percent <= 33) return 11;
-    if (percent <= 66) return 51;
-    return 91;
-  }
-
-  private mrestSpeedToPercent(speed: number): number {
-    if (speed <= 0) return 0;
-    if (speed <= 11) return 33;
-    if (speed <= 51) return 66;
-    return 100;
-  }
 
   constructor(
     protected readonly platform: BlueAirPlatform,
@@ -292,17 +277,12 @@ export class AirPurifierAccessory {
   }
 
   getRotationSpeed(): CharacteristicValue {
-    if (this.device.state.standby !== false) return 0;
-    if (this.isMiniRestful) {
-      return this.mrestSpeedToPercent(this.device.state.fanspeed || 0);
-    }
-    return this.device.state.fanspeed || 0;
+    return this.device.state.standby === false ? this.device.state.fanspeed || 0 : 0;
   }
 
   async setRotationSpeed(value: CharacteristicValue) {
     this.platform.log.debug(`[${this.device.name}] Setting rotation speed to ${value}`);
-    const speed = this.isMiniRestful ? this.mrestSpeedFromPercent(value as number) : (value as number);
-    await this.device.setState('fanspeed', speed);
+    await this.device.setState('fanspeed', value as number);
   }
 
   getFilterChangeIndication(): CharacteristicValue {
